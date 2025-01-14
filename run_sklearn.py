@@ -44,24 +44,27 @@ def do_birch(X, Ks):
     for branching_factor in [10, 50, 100]:
         for threshold in [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0]:
             for K in Ks:
-                #method = "sklearn_birch_T%g_BF%d"%(threshold, branching_factor)
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore")
-                    # If threshold is too large, the number of subclusters
-                    # found might be less than the requested one.
+                try:
+                    with warnings.catch_warnings():
+                        warnings.simplefilter("ignore")
+                        # If threshold is too large, the number of subclusters
+                        # found might be less than the requested one.
                     c = sklearn.cluster.Birch(n_clusters=K,
-                        threshold=threshold,
-                        branching_factor=branching_factor
-                    )
+                                              threshold=threshold,
+                                              branching_factor=branching_factor
+                                              )
                     labels_pred = c.fit_predict(X)+1 # 0-based -> 1-based
                     #print(np.bincount(labels_pred))
                     #print(len(labels_pred))
-                    if labels_pred.max() == K:
-                        res[K][method] = labels_pred
+                except:
+                    pass
+                if labels_pred.max() == K:
+                    res[K] = labels_pred
             # print(".", end="", flush=True)
         # print(":", end="", flush=True)
     # print("<", end="", flush=True)
-    return res
+    arr = np.array([res[key] for key in res.keys()]).T
+    return arr
 
 
 def main():
@@ -92,8 +95,9 @@ def main():
     Ks = [k-2, k-1, k, k+1, k+2] # ks tested, including the true number
     
     data = getattr(args, 'data.matrix')
-    curr = do_birch(X= load_dataset(data), Ks = Ks, method = args.method)
-
+    if args.method == 'birch':
+        curr = do_birch(X= load_dataset(data), Ks = Ks)
+    
     name = args.name
 
     header=['k=%s'%s for s in Ks]
