@@ -14,7 +14,7 @@ import sklearn.mixture
 import numpy as np
 import warnings
 
-VALID_METHODS = ['birch']
+VALID_METHODS = ['birch', 'kmeans', 'spectral', 'gm']
 
 def load_labels(data_file):
     data = np.loadtxt(data_file, ndmin=1)
@@ -35,6 +35,61 @@ def load_dataset(data_file):
     return(data)
 
 
+def do_gm(X, Ks):
+    res = dict()
+
+    for K in Ks:
+        c = sklearn.mixture.GaussianMixture(n_components=K,
+            n_init=100,
+            # defaults: tol=1e-3, covariance_type="full", max_iter=100, reg_covar=1e-6
+            random_state=123
+        )
+        labels_pred = c.fit_predict(X)+1 # 0-based -> 1-based
+        if len(np.unique(labels_pred)) != K: # some clusters might be empty
+            continue # skip
+        res[K] = labels_pred
+    return np.array([res[key] for key in res.keys()]).T
+
+
+## caution slow!
+def do_spectral(X, Ks):
+    res = dict()
+
+    for K in Ks:
+        for affinity in ["rbf", "laplacian", "poly", "sigmoid"]:
+            for gamma in [0.25, 0.5, 1.0, 2.5, 5.0]:
+                method = "sklearn_spectral_A%s_G%g"%(affinity, gamma)
+                try:
+                    with warnings.catch_warnings():
+                        warnings.simplefilter("ignore")
+                        c = sklearn.cluster.SpectralClustering(n_clusters=K,
+                            affinity=affinity, gamma=gamma,
+                            random_state=123
+                        )
+                        labels_pred = c.fit_predict(X)+1 # 0-based -> 1-based
+                        #print(np.bincount(labels_pred))
+                        #print(len(labels_pred))
+                        assert min(labels_pred) == 1
+                        assert max(labels_pred) == K
+                        assert labels_pred.shape[0] == X.shape[0]
+                        assert len(np.unique(labels_pred)) == K
+                        res[K] = labels_pred
+                except:
+                    pass
+    return np.array([res[key] for key in res.keys()]).T
+
+def do_kmeans(X, Ks):
+    res = dict()
+    for K in Ks: res[K] = dict()
+
+    for K in Ks:
+        c = sklearn.cluster.KMeans(n_clusters=K,
+             # defaults: n_init=10, max_iter=300, tol=1e-4, init="k-means++"
+            random_state=123
+        )
+        labels_pred = c.fit_predict(X)+1 # 0-based -> 1-based
+        res[K] = labels_pred
+    return np.array([res[key] for key in res.keys()]).T
 
 def do_birch(X, Ks):
     res = dict()
@@ -97,6 +152,14 @@ def main():
     data = getattr(args, 'data.matrix')
     if args.method == 'birch':
         curr = do_birch(X= load_dataset(data), Ks = Ks)
+    elif args.method == 'kmeans':
+        curr = do_kmeans(X= load_dataset(data), Ks = Ks)
+    elif args.method == 'spectral':
+        curr = do_spectral(X = load_dataset(data), Ks = Ks)
+    elif args.method == 'gm':
+        curr = do_gm(X = load_dataset(data), Ks = Ks)
+    elif args.method in VALID_METHODS:
+        raise ValueError('Valid method, but not implemented')
     
     name = args.name
 
