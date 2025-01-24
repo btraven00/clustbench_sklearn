@@ -45,8 +45,12 @@ def do_gm(X, Ks):
             random_state=123
         )
         labels_pred = c.fit_predict(X)+1 # 0-based -> 1-based
-        if len(np.unique(labels_pred)) != K: # some clusters might be empty
-            continue # skip
+        # print(K)
+        # print(np.unique(labels_pred))
+        # print('----')
+        if len(np.unique(labels_pred)) != K: # some clusters might be empty, so not fullfiling the K requirement
+            ## in that case, we report everything belongs to the K cluster
+            res[K] =  np.repeat(K, len(labels_pred))
         res[K] = labels_pred
     return np.array([res[key] for key in res.keys()]).T
 
@@ -164,6 +168,8 @@ def main():
     name = args.name
 
     header=['k=%s'%s for s in Ks]
+
+    print(curr.shape)
     
     curr = np.append(np.array(header).reshape(1,5), curr.astype(str), axis=0)
     np.savetxt(os.path.join(args.output_dir, f"{name}_ks_range.labels.gz"),
