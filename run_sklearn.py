@@ -152,6 +152,8 @@ def main():
     truth = load_labels(getattr(args, 'data.true_labels'))
     k = int(max(truth)) # true number of clusters
     Ks = [k-2, k-1, k, k+1, k+2] # ks tested, including the true number
+    replace = lambda x: x if x >= 2 else 2 ## but we never run k < 2; those are replaced by a k=2 run (to not skip the calculation)
+    Ks = list(map(replace, Ks))
     
     data = getattr(args, 'data.matrix')
     if args.method == 'birch':
