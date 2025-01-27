@@ -198,10 +198,8 @@ def main():
         raise ValueError('Valid method, but not implemented')
     
     name = args.name
-
-    header=['k=%s'%s for s in Ks]
-
-    print(curr.shape)
+    
+    header=['k=%s'%s for s in Ks.values()]
     
     curr = np.append(np.array(header).reshape(1,5), curr.astype(str), axis=0)
     np.savetxt(os.path.join(args.output_dir, f"{name}_ks_range.labels.gz"),
